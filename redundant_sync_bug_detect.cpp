@@ -1161,11 +1161,13 @@ struct sync_bug_detect : public FunctionPass {
           redundant &= true;
       }
       if (redundant) {
-        outfile << "Redundant barrier detected between regions #" << i - 1
-                << " and #" << i << "\n";
+        // outfile << "Redundant barrier detected between regions #" << i - 1
+        //         << " and #" << i << "\n";
+        outfile<<"barrier "<<i<< " is redundant\n";
       } else {
-        outfile << "No redundancy detected between regions #" << i - 1
-                << " and #" << i << "\n";
+        // outfile << "No redundancy detected between regions #" << i - 1
+        //         << " and #" << i << "\n";
+        outfile<<"barrier "<<i<< " is not redundant\n";
       }
       outfile << "-----------------------------------\n";
     }
@@ -1312,7 +1314,6 @@ struct sync_bug_detect : public FunctionPass {
 
     outfile << "-----------------------------------\n";
     outfile << F.getName() << "\n";
-    outfile << regions.size() << "\n";
     outfile << "-----------------------------------\n";
     detectConflicts();
     return false;

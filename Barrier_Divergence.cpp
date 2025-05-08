@@ -42,6 +42,8 @@ namespace {
     pair<string, string> b1_b2;
     pair<string, string> a1_a2;
     map<BasicBlock*, bool> bb_has_barrier_divergence;
+    int syncthread_count = 0;
+    vector<int> ans; // pushing nth syncthread
 
     /* Constant Prop Functions */
     void remove_first_line_of_file() {
@@ -1090,6 +1092,7 @@ namespace {
     }
 
     void calculateThreadRange(BasicBlock &BB, Function &F, BasicBlock *BB_succ) {
+        errs() << "block name: " << block_name[&BB] << "\n";
 
         Instruction *comp_operator = nullptr;
         // errs() << "Calculating debugging\n";
@@ -1109,13 +1112,14 @@ namespace {
         // errs() << "Symbol of Comparison Operator: " << symbol << "\n";
 
 
-        // errs() << "Thread Range Block: " << block_name[&BB] << "\n";
-        // errs() << "a1+b1: " << a1_a2.first << "\n";
-        // errs() << "a2+b2: " << a1_a2.second << "\n";
-        // errs() << "b1: " << b1_b2.first << "\n";
-        // errs() << "b2: " << b1_b2.second << "\n";
+        errs() << "Thread Range Block: " << block_name[&BB] << "\n";
+        errs() << "a1+b1: " << a1_a2.first << "\n";
+        errs() << "a2+b2: " << a1_a2.second << "\n";
+        errs() << "b1: " << b1_b2.first << "\n";
+        errs() << "b2: " << b1_b2.second << "\n";
         if(a1_a2.first == "BOTTOM" or a1_a2.second == "BOTTOM" or b1_b2.first == "BOTTOM" or b1_b2.second == "BOTTOM") {
             bb_has_barrier_divergence[BB_succ] = true;
+            ans.push_back(syncthread_count);
             errs() << "Barrier Divergence\n";
             return;
         }
@@ -1145,6 +1149,7 @@ namespace {
         else if(symbol == "==" or symbol == "!=") {
             if(x >= 0 and x < 64) {
                 bb_has_barrier_divergence[BB_succ] = true;
+                ans.push_back(syncthread_count);
                 errs() << "Barrier Divergence\n";
             }
             else {
@@ -1161,6 +1166,7 @@ namespace {
                 }
                 else {
                     bb_has_barrier_divergence[BB_succ] = true;
+                    ans.push_back(syncthread_count);
                     errs() << "Barrier Divergence\n";
                 }
             }
@@ -1171,6 +1177,7 @@ namespace {
                 }
                 else {
                     bb_has_barrier_divergence[BB_succ] = true;
+                    ans.push_back(syncthread_count);
                     errs() << "Barrier Divergence\n";
                 }
             }
@@ -1184,6 +1191,7 @@ namespace {
                 }
                 else {
                     bb_has_barrier_divergence[BB_succ] = true;
+                    ans.push_back(syncthread_count);
                     errs() << "Barrier Divergence\n";
                 }
             }
@@ -1194,6 +1202,7 @@ namespace {
                 }
                 else {
                     bb_has_barrier_divergence[BB_succ] = true;
+                    ans.push_back(syncthread_count);
                     errs() << "Barrier Divergence\n";
                 }
             }  
@@ -1207,6 +1216,7 @@ namespace {
                 }
                 else {
                     bb_has_barrier_divergence[BB_succ] = true;
+                    ans.push_back(syncthread_count);
                     errs() << "Barrier Divergence\n";
                 }
             }
@@ -1217,6 +1227,7 @@ namespace {
                 }
                 else {
                     bb_has_barrier_divergence[BB_succ] = true;
+                    ans.push_back(syncthread_count);
                     errs() << "Barrier Divergence\n";
                 }
             }
@@ -1230,6 +1241,7 @@ namespace {
                 }
                 else {
                     bb_has_barrier_divergence[BB_succ] = true;
+                    ans.push_back(syncthread_count);
                     errs() << "Barrier Divergence\n";
                 }
             }
@@ -1240,6 +1252,7 @@ namespace {
                 }
                 else {
                     bb_has_barrier_divergence[BB_succ] = true;
+                    ans.push_back(syncthread_count);
                     errs() << "Barrier Divergence\n";
                 }
             } 
@@ -1248,6 +1261,7 @@ namespace {
         else { /* FALSE POSITIVE */
             errs() << "Barrier Divergence\n";
             bb_has_barrier_divergence[BB_succ] = true;
+            ans.push_back(syncthread_count);
             return;
         }
     }
@@ -1269,6 +1283,9 @@ namespace {
                   // errs() << "function called: " << calledFunction->getName() << "\n";
                   if (calledFunction && calledFunction->getName() == "llvm.nvvm.barrier0") {
                       hasBarrierDivergence = true;
+
+          syncthread_count++;
+
                       break; // Exit the loop if a syncthread call is found
                   }
               }
@@ -1310,6 +1327,7 @@ namespace {
 
                 if(hasThreadIdDependency_on_func_args and hasThreadIdDependency) {
                     bb_has_barrier_divergence[&BB] = true;
+                    ans.push_back(syncthread_count);
                     errs() << "Barrier Divergence\n";
                 }
                 else if(!hasThreadIdDependency) {
@@ -1374,6 +1392,12 @@ namespace {
                 }
             }
         }   
+
+        //clear bb_lattice,bb_var_value,last_block_var_values
+        bb_lattice.clear();
+        bb_var_values.clear();
+        last_block_var_values.clear();
+
         return make_pair(a, b);   
     }
 
@@ -1406,6 +1430,10 @@ namespace {
                     outFile << "Basic Block: " << block_name[&BB] << " does not have Barrier Divergence\n";
                 }
             }
+        }
+
+        for(int i = 0; i < ans.size(); i++) {
+            outFile << "__syncthread(): " << ans[i] << " has Barrier Divergence\n";
         }
         outFile.close();
     }

@@ -3,8 +3,8 @@
 
 __global__ void myKernel(int *a, int x, int y) {
     int tid = threadIdx.x;
-    x = a[tid] = x;
-    y = a[tid + 1] = y; // Not a Data Race
+    x = a[tid];
+    y = a[tid + 1]; // Not a Data Race
 }
 
 int main() {

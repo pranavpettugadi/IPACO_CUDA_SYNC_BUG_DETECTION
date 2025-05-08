@@ -4,7 +4,7 @@
 __global__ void myKernel(int *a, int x, int y) {
     int tid = threadIdx.x;
     a[tid] = x;
-    a[tid + 1 - 1] = y;
+    a[tid + 1 - 1] = y; // Not a Data Race
 }
 
 int main() {
